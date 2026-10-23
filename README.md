@@ -1,100 +1,237 @@
 # HackJudge AI
 
-**Evidence-led hackathon judging with custom rubrics, GitHub repository inspection, optional demo checks, AI assessments, a leaderboard, and auditable human overrides.**
+**AI-powered hackathon evaluation with customizable judging rubrics, GitHub repository analysis, and human review.**
 
-This is a deliberately compact MVP for a short hackathon build. It uses one Flask service, a SQLite database, and a static frontend—no Node build, Docker, Clerk, or separate microservices required.
+HackJudge AI helps hackathon organizers evaluate projects consistently using organizer-defined criteria, repository evidence, AI-assisted assessments, and transparent weighted scoring.
 
-## What works
+## 1. What We Built
 
-- Create multiple hackathons with a track, description, custom criteria and percentage weights that must total exactly 100%.
-- Add mandatory requirements; assessment reports whether each was verified, not verified, or not met when AI is configured.
-- Submit team/project name, a GitHub repository URL, optional live demo URL, and notes.
-- Collect GitHub repository metadata, README, tracked file paths, a bounded set of source/manifests/tests/CI/deployment files, license metadata, and latest commit metadata.
-- Inspect a public demo's HTTP reachability and limited visible text. This does **not** verify interactive functionality.
-- Use an OpenAI-compatible chat-completions endpoint for criterion-by-criterion evaluation when configured.
-- Validate model criterion names and scores; calculate the weighted final score on the server, not by trusting a model-provided total.
-- If no model is configured, use a clearly labelled **structural baseline**. It is not represented as AI judgement and must not be treated as a competition verdict.
-- Dashboard/leaderboard, evidence details, risks/missing evidence, and human score overrides with a required reason and audit log.
-- SQLite persistence. Repository code is read as data and is never executed.
+HackJudge AI is a web application where organizers define judging criteria and evaluators submit a project's GitHub repository URL, with an optional live-demo URL.
 
-## Run on Windows PowerShell
+The application aims to collect project evidence, assess it against the rubric, calculate a weighted score, and support human review.
 
-Open PowerShell in the extracted `HackJudge-AI` folder.
+### Key Features
+
+- Customizable judging criteria and weights
+- GitHub repository URL submission
+- Optional live-demo URL
+- Repository evidence inspection
+- AI-assisted criterion-level assessments
+- Weighted scoring
+- Human score overrides with reasons, where supported
+- Evaluation dashboard and leaderboard
+
+## 2. Gemma 4 Integration
+
+**Model:** `gemma-4-26b-a4b-it`
+
+**API:** Google Gemini API  
+**API base URL:** `https://generativelanguage.googleapis.com/v1beta/openai`
+
+HackJudge AI is designed to use Google's Gemma 4 model through the Gemini API's OpenAI-compatible endpoint.
+
+### How Gemma 4 Is Used
+
+1. An evaluator submits a public GitHub repository URL.
+2. HackJudge AI collects available repository evidence, such as README content, source files, tests, dependencies, CI configuration, and license information.
+3. The configured Gemma 4 model assesses the available evidence against the organizer's judging criteria.
+4. The application presents criterion-level assessments and calculates a weighted score.
+5. Human judges review the results and can override scores with a reason where supported.
+
+Gemma 4 is intended to perform meaningful evaluation work rather than act as a decorative chatbot. Human judges remain responsible for final decisions.
+
+**Important:** The model identifier and API configuration must be verified against the actual working integration. Do not claim a successful live Gemma 4 call until it has been tested.
+
+## 3. Tech Stack
+
+- Backend: Python and Flask
+- Frontend: HTML, CSS, and JavaScript
+- AI: Google Gemini API with the configured Gemma 4 model
+- Testing: pytest
+
+See `requirements.txt` for dependencies.
+
+## 4. Installation and Setup
+
+### Requirements
+
+- Python 3.10 or newer recommended
+- Git
+- Internet connection
+- Gemini API key for live AI assessment
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/suraj-creator-11/HackJudge-AI.git
+cd HackJudge-AI
+```
+
+### Step 2: Create a Virtual Environment
+
+Windows PowerShell:
 
 ```powershell
-py -3.10 -m venv .venv
+py -m venv .venv
 .\.venv\Scripts\Activate.ps1
+```
+
+macOS/Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### Step 3: Install Dependencies
+
+```bash
 python -m pip install --upgrade pip
 pip install -r requirements.txt
-Copy-Item .env.example .env
-python app.py
 ```
 
-If PowerShell blocks virtual-environment activation, you can skip activation and use the venv's Python directly:
+### Step 4: Configure the Gemini API
+
+Copy `.env.example` to `.env`.
+
+Windows PowerShell:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe app.py
+Copy-Item .env.example .env
+notepad .env
 ```
 
-Open **http://127.0.0.1:5000**. You can also run `./start.ps1` from PowerShell; it creates the environment and installs dependencies before starting the app.
+Configure the appropriate environment variables:
 
-Run the local unit tests with `python -m unittest discover -s tests -v` after installing dependencies.
-
-## Configure AI assessment
-
-The app expects an **OpenAI-compatible chat completions API**. Providers differ in endpoint, model availability, authentication and request format; use the exact endpoint and model identifier supported by the provider you choose.
-
-Edit `.env`:
-
-```dotenv
-AI_BASE_URL=https://YOUR-PROVIDER-BASE-URL/v1
-AI_API_KEY=your_key_here
-AI_MODEL=your_provider_model_id
+```env
+AI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai
+AI_API_KEY=YOUR_GEMINI_API_KEY
+AI_MODEL=gemma-4-26b-a4b-it
 ```
 
-The app appends `/chat/completions` unless that suffix is already present. Restart the Flask server after changing `.env`. Do not put provider keys in frontend JavaScript or commit `.env` to GitHub. **Do not assume a model name works without checking the provider's current model list and making a test request.**
+Use the exact variable names expected by the application's configuration and `.env.example`.
 
-Optional GitHub token (use only a token with the minimum required access):
+Never publish your real API key. Keep `.env` private.
 
-```dotenv
-GITHUB_TOKEN=your_github_token
+### Step 5: Run the Application
+
+On Windows PowerShell:
+
+```powershell
+.\start.ps1
 ```
 
-Unauthenticated public GitHub API access is rate-limited. A token helps with rate limits and can access private repositories only if the token is actually authorised for them. Keep tokens secret.
+Alternatively, run the Flask application using the startup command specified by the project configuration.
 
-## Suggested 8-hour build/demo plan
+Open the local address printed by the application.
 
-1. **Hour 1:** install, launch, create a hackathon and validate the rubric.
-2. **Hours 2–3:** submit 2–3 public repositories; confirm collected files and evidence.
-3. **Hour 4:** configure and test the selected AI provider; verify JSON response handling and weighted scoring.
-4. **Hour 5:** inspect criterion rationales, missing evidence and optional demo results.
-5. **Hour 6:** test score override and audit history; compare leaderboard rankings.
-6. **Hour 7:** test failure cases (invalid repo, private repo without token, unreachable demo, missing AI configuration).
-7. **Hour 8:** prepare a short demo and explain limitations honestly.
+## 5. How to Use HackJudge AI
 
-## API overview
+1. Open the application.
+2. Create or select a hackathon event.
+3. Configure judging criteria and their weights.
+4. Submit a public GitHub repository URL.
+5. Add a live-demo URL if available.
+6. Run the evaluation.
+7. Review the collected evidence and AI assessment.
+8. Inspect the final weighted score.
+9. Use the human-review workflow where available.
 
-- `GET /api/health` — app and AI configuration status
-- `GET /api/hackathons` — list programs
-- `POST /api/hackathons` — create hackathon
-- `GET /api/hackathons/<id>` — hackathon and rubric
-- `GET /api/hackathons/<id>/submissions` — leaderboard submissions
-- `POST /api/submissions` — collect evidence and assess
-- `GET /api/submissions/<id>` — evidence, assessment and audit trail
-- `POST /api/submissions/<id>/override` — set final score (0–100), reason required
+## 6. Hackathon Submission — Best Use of Gemma 4
 
-## Security and limitations
+**Intended track: Best Use of Gemma 4**
 
-- Never execute participant code or install dependencies from a submission.
-- GitHub evidence is bounded by file count and content length. Large monorepos and unusual project layouts may have incomplete inspection.
-- GitHub repository metadata and file contents are untrusted. Model instructions explicitly treat repo contents as evidence, not instructions, but prompt injection cannot be eliminated completely.
-- Demo checks block non-public DNS/IP destinations, reject nonstandard ports, and do not follow redirects. For production use, perform URL fetching in a hardened egress-restricted service to further mitigate DNS rebinding and network edge cases.
-- This MVP has no login/role-based access control. Run locally for a hackathon demo; do not expose it to the public internet with real submissions without adding authentication, authorisation, rate limiting, stronger isolation, and privacy controls.
-- The optional AI API call may send submitted notes and collected public repository text to the configured model provider. Disclose this to participants and check the provider's data policies.
-- Scores are decision support, not objective truth. Keep human judges in control and document rubric calibration.
-- If the AI call fails, the submission remains visible as `ASSESSMENT_ERROR` and receives no fabricated score.
+HackJudge AI is intended for this track because Gemma 4 supports the core project-evaluation workflow by assessing repository evidence against customizable judging criteria.
 
-## License
+### Four Steps Before Submission
 
-This fresh implementation is provided under the MIT License; see `LICENSE`.
+**01 — Wire Up Gemma 4**
+
+Configure the Gemini API and verify a real model call that performs meaningful rubric-based project assessment.
+
+**02 — Write the README**
+
+Explain what was built, how to run it, and explicitly name the Gemma model used. This README documents those details.
+
+**03 — Submit Once for the Team**
+
+One teammate submits through the event's OrganizerHQ Challenges page before the deadline and selects **Best Use of Gemma 4**. Follow the event instructions to submit to one track only.
+
+**04 — Demo on the Floor**
+
+Show the integration, not just the output. Be prepared to explain which model was called, what evidence it received, and what work it performed.
+
+Check the organizer's latest instructions for the submission deadline and requirements.
+
+## 7. Suggested Live Demo
+
+1. Create an event and configure custom judging criteria.
+2. Submit a public GitHub repository URL.
+3. Show the repository evidence collected by the application.
+4. Trigger the Gemma 4 assessment.
+5. Show the criterion-level results.
+6. Explain how the final weighted score is calculated.
+7. Demonstrate human review and a justified score override, if available.
+
+### Demo Checklist
+
+- [ ] The application starts successfully.
+- [ ] Organizers can configure judging criteria.
+- [ ] Evaluators can submit a GitHub repository.
+- [ ] Repository evidence is displayed.
+- [ ] A real Gemini API request reaches the configured Gemma 4 model.
+- [ ] The model returns a meaningful assessment.
+- [ ] Weighted scoring works correctly.
+- [ ] Human review works as described.
+- [ ] No API key or secret is exposed.
+
+Do not present mock output or fallback results as a successful live Gemma 4 integration.
+
+## 8. Testing
+
+Run the project's tests with:
+
+```bash
+pytest
+```
+
+A passing test suite does not, by itself, prove that the live Gemini API integration works. Test the actual model call separately.
+
+## 9. Security and Responsible Evaluation
+
+- Never commit `.env` or API keys.
+- Keep `.env.example` free of real credentials.
+- Treat repository content as untrusted input.
+- Missing repository files should not automatically be treated as proof of poor project quality.
+- Keep human judges responsible for final decisions.
+- Follow the applicable terms for models, APIs, and dependencies.
+
+## 10. Project Structure
+
+```text
+HackJudge-AI/
+├── app.py
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── start.ps1
+├── LICENSE
+├── README.md
+├── static/
+│   ├── app.js
+│   └── styles.css
+├── templates/
+│   └── index.html
+└── tests/
+    └── test_app.py
+```
+
+The local SQLite database should not be committed to the public repository.
+
+## 11. License
+
+This project is distributed under the MIT License. See the `LICENSE` file.
+
+## 12. GitHub Repository
+
+https://github.com/suraj-creator-11/HackJudge-AI
