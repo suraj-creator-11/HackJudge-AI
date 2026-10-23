@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+hackjudge.db
+.pytest_cache/
+
+# Additional local files
+.env.*
+!.env.example
+venv/
+instance/
+*.db
+*.sqlite
+*.sqlite3
+.pytest_cache/
